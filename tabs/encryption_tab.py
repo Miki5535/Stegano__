@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QLineEdit, QComboBox, QPushButton, QLabel, QTextEdit,QHBoxLayout
 )
-# from PyQt5.QtCore import Qt
 from cryptography.fernet import Fernet
 from Crypto.Cipher import AES, Blowfish, PKCS1_OAEP
 from Crypto.PublicKey import RSA
@@ -9,8 +8,10 @@ from Crypto.Util.Padding import pad, unpad
 import base64
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES
-# from Crypto.Util.Padding import pad, unpad   
+ 
 import base64
+import random
+import string
 
 class EncryptionTab(QWidget):
     def __init__(self):
@@ -82,16 +83,24 @@ class EncryptionTab(QWidget):
         layout.addWidget(encrypt_group)
         
         self.setLayout(layout)
-
+ 
     def generate_random_key(self):
-        # สุ่มความยาวของคีย์ (16, 24, 32 ไบต์)
+    # กำหนดความยาวของข้อความที่จะสุ่ม
         key_lengths = [16, 24, 32]
-        generated_keys = {length: get_random_bytes(length).hex() for length in key_lengths}
+        generated_keys = {}
+
+        for length in key_lengths:
+            # สุ่มข้อความด้วยตัวอักษรและตัวเลข
+            key = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+            generated_keys[length] = key
         
-        # แสดงคีย์ในผลลัพธ์
-        self.result_output.append("<b>คีย์ที่สุ่มได้:</b>")
+        # แสดงผลลัพธ์
+        self.result_output.append("=========================================================")
+        self.result_output.append("<b>ข้อความที่สุ่มได้:</b>")
         for length, key in generated_keys.items():
-            self.result_output.append(f"<b>Key {length} Bytes:</b> {key}")
+            # print(f"<b>Key {length} Characters:</b> {key}")
+            self.result_output.append(f"<b>Key {length} Characters:</b> <span style='color:blue;'>{key}</span>")
+        self.result_output.append("=========================================================")
 
     def encrypt_message(self):
         message = self.encryption_message_input.text()
@@ -141,7 +150,7 @@ class EncryptionTab(QWidget):
                 
 
                 # แสดงผลลัพธ์ที่เข้ารหัส
-                self.result_output.append(f"<b>ผลลัพธ์ ({encryption_type}):</b> {encrypted}")
+                self.result_output.append(f"<b>ผลลัพธ์ ({encryption_type}):</b> <font color='deeppink'>{encrypted}")
 
             else:
                 # Handle other encryption methods here (RSA, Blowfish, Fernet)
@@ -160,9 +169,9 @@ class EncryptionTab(QWidget):
                         private_key = self.rsa_keys.export_key().decode('utf-8')
                         public_key_pem = public_key.export_key().decode('utf-8')
 
-                        self.result_output.append(f"<b>ผลลัพธ์ (RSA):</b> {encrypted}")
-                        self.result_output.append(f"<b>Private Key:</b>\n{private_key}")
-                        self.result_output.append(f"<b>Public Key:</b>\n{public_key_pem}")
+                        self.result_output.append(f"<b>ผลลัพธ์ (RSA):</b> <font color='deeppink'>{encrypted}")
+                        self.result_output.append(f"<b>Private Key:</b>\n<font color='purple'>{private_key}")
+                        self.result_output.append(f"<b>Public Key:</b>\n<font color='brown'>{public_key_pem}")
 
                     elif encryption_type == "Blowfish":
                         if not key:
@@ -170,7 +179,7 @@ class EncryptionTab(QWidget):
                             return
                         cipher = Blowfish.new(pad(key.encode('utf-8'), Blowfish.block_size), Blowfish.MODE_ECB)
                         encrypted = base64.b64encode(cipher.encrypt(pad(message.encode('utf-8'), Blowfish.block_size))).decode('utf-8')
-                        self.result_output.append(f"<b>ผลลัพธ์ (Blowfish):</b> {encrypted}")
+                        self.result_output.append(f"<b>ผลลัพธ์ (Blowfish):</b> <font color='deeppink'>{encrypted}")
 
                     elif encryption_type == "Fernet":
                         if not key:

@@ -1,19 +1,11 @@
+from random import seed
 from PIL import Image
-import numpy as np
 import numpy as np
 import cv2
 from scipy.fftpack import dct, idct
+import os
 
 
-# Encryption functions (AES, RSA, Blowfish, Fernet)
-# def binary_to_string2(binary):
-#     """แปลง binary string กลับเป็นข้อความ"""
-#     try:
-#         binary = binary.replace(' ', '')
-#         return ''.join(chr(int(binary[i:i+8], 2)) for i in range(0, len(binary), 8))
-#     except Exception as e:
-#         print(f"Error converting from binary: {str(e)}")
-#         return None
 
 def string_to_binary(message):
     return ''.join(format(byte, '08b') for byte in message.encode('utf-8'))
@@ -136,40 +128,62 @@ def hide_message_palette_based_from_steganography(image_path, message, output_pa
     temp_png_path = "temp_image.png"
     img.save(temp_png_path, format="PNG")
     
-    # เปิดภาพ PNG ที่แปลงแล้วและแปลงเป็น Palette-based
-    img = Image.open(temp_png_path).convert("P")
-    palette = img.getpalette()
-    
-    # แปลงข้อความเป็น binary พร้อมตัวจบข้อความ
-    binary_message = string_to_binary(message) + '0' * 8
+    try:
+        # เปิดภาพ PNG ที่แปลงแล้วและแปลงเป็น Palette-based
+        img = Image.open(temp_png_path).convert("P")
+        palette = img.getpalette()
+        
+        # แปลงข้อความเป็น binary พร้อมตัวจบข้อความ
+        binary_message = string_to_binary(message) + '0' * 8
 
-    # ฝังข้อความลงในพาเลต
-    for i in range(len(binary_message)):
-        if i < len(palette):
-            palette[i] = (palette[i] & ~1) | int(binary_message[i])  # ฝังบิตลงใน palette
+        # ฝังข้อความลงในพาเลต
+        for i in range(len(binary_message)):
+            if i < len(palette):
+                palette[i] = (palette[i] & ~1) | int(binary_message[i])  # ฝังบิตลงใน palette
 
-    img.putpalette(palette)
-    img.save(output_path, format="PNG")
+        img.putpalette(palette)
+        img.save(output_path, format="PNG")
+        print(f"ข้อความถูกฝังสำเร็จใน {output_path}")
+
+    finally:
+        # ลบไฟล์ชั่วคราว
+        if os.path.exists(temp_png_path):
+            os.remove(temp_png_path)
+            print(f"ลบไฟล์ชั่วคราว {temp_png_path} สำเร็จ")
 
 
 
 
 
 def hide_message_spread_spectrum_from_steganography(image_path, message, output_path):
+    # อ่านภาพ
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("ไม่สามารถโหลดภาพได้")
     
-    message_bits = ''.join(format(ord(c), '08b') for c in message)
-    noise = np.random.choice([0, 1], size=img.shape[:2], p=[0.9, 0.1])
+    # แปลงข้อความเป็น Binary พร้อมตัวจบข้อความ
+    message_bits = ''.join(format(ord(c), '08b') for c in message) + '0' * 8
+    
+    # สร้าง Noise Signal (Pseudo-Random Binary Sequence)
+    np.random.seed(seed)
+    noise = np.random.choice([0, 1], size=img.shape[:2], p=[0.5, 0.5]).astype(np.uint8)
 
-    for i in range(len(message_bits)):
-        if i < len(noise.flat):
-            x, y = divmod(i, img.shape[1])
-            new_value = (img[x, y, 0] & ~1) | (int(message_bits[i]) ^ noise[x, y])
-            img[x, y, 0] = np.clip(new_value, 0, 255)  # บังคับให้อยู่ในช่วง 0-255
+    # ฝังข้อความโดยใช้ XOR กับ Noise Signal
+    idx = 0
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            if idx < len(message_bits):
+                bit = int(message_bits[idx])
+                img[i, j, 0] = (img[i, j, 0] & ~1) | (bit ^ noise[i, j])  # ฝังข้อความในช่องสีน้ำเงิน
+                idx += 1
+            else:
+                break
+        if idx >= len(message_bits):
+            break
 
+    # บันทึกภาพ
     cv2.imwrite(output_path, img)
+
 
 
 
@@ -269,14 +283,25 @@ def retrieve_message_spread_spectrum_from_steganography(image_path):
     if img is None:
         raise ValueError("ไม่สามารถโหลดภาพได้")
 
-    # อ่านสัญญาณที่ซ่อนข้อความ
+    # สร้าง Noise Signal (Pseudo-Random Binary Sequence)
+    np.random.seed(seed)
+    noise = np.random.choice([0, 1], size=img.shape[:2], p=[0.5, 0.5])
+
+    # อ่านข้อความที่ซ่อนอยู่
     bits = []
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
-            bits.append(img[i, j, 0] & 1)
+            bit = (img[i, j, 0] & 1) ^ noise[i, j]
+            bits.append(bit)
 
-    # รวมบิตและแปลงเป็นข้อความ
-    byte_list = [bits[i:i+8] for i in range(0, len(bits), 8)]
-    message = ''.join(chr(int(''.join(map(str, byte)), 2)) for byte in byte_list if int(''.join(map(str, byte)), 2) != 0)
-
-    return message
+    # แปลงบิตเป็นข้อความ
+    binary_message = ''.join(map(str, bits))
+    if '00000000' in binary_message:
+        binary_message = binary_message.split('00000000')[0]  # ตัดตัวจบข้อความ
+        byte_list = [binary_message[i:i+8] for i in range(0, len(binary_message), 8)]
+        try:
+            return ''.join(chr(int(byte, 2)) for byte in byte_list)
+        except ValueError:
+            return "ข้อความที่ซ่อนไว้ไม่ถูกต้อง"
+    else:
+        return "ไม่มีข้อความ หรือข้อความไม่ถูกต้อง"

@@ -7,6 +7,7 @@ import tabs.image_tab as image_tab
 import tabs.audio_tab as audio_tab
 import tabs.file_info_tab as info_tab
 import tabs.encryption_tab as encryption_tab
+import tabs.file_and_FILE as file_and_FILE
 
 
 
@@ -110,6 +111,9 @@ class EnhancedSteganographyApp(QWidget):
         
         self.info_tab = info_tab.FileInfoTab()
         tabs.addTab(self.info_tab, "การซ่อนใน Meta Tag")
+        
+        self.file_tab = file_and_FILE.FileAndFileTab()
+        tabs.addTab(self.file_tab, "ไฟล์ต่อไฟล์")
         
         self.encryption_tab = encryption_tab.EncryptionTab()
         tabs.addTab(self.encryption_tab, "การเข้ารหัส")
