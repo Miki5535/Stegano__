@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QLabel, QLineEdit, 
     QGroupBox, QHBoxLayout, QTextEdit, QComboBox, QMessageBox, QFileDialog
 )
-from PyQt5.QtCore import Qt
+# from PyQt5.QtCore import Qt
 import ffmpeg
 from utils.steganography import string_to_binary, binary_to_string2,binary_to_string
 

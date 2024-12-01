@@ -19,6 +19,7 @@ class EnhancedSteganographyApp(QWidget):
         self.setWindowTitle("Enhanced Steganography and Encryption App")
         self.setGeometry(100, 100, 1000, 800)
         self.setWindowIcon(QIcon("myicon.ico"))
+        self.setFixedSize(1000, 800) 
         self.current_file_path = None
         self.setup_styles()  
         self.initUI()
@@ -92,6 +93,8 @@ class EnhancedSteganographyApp(QWidget):
             }
         """)
 
+
+           
 
 
     def initUI(self):

@@ -58,7 +58,7 @@ class AudioTab(QWidget):
         self.audio_path_label = QLabel("ไม่ได้เลือกไฟล์")
         self.audio_path_label.setStyleSheet("padding: 5px; border: 1px solid #ccc;")
         self.audio_path_label.setMinimumHeight(30)
-        self.audio_path_label.setMinimumWidth(400)  # Increase width for better preview
+        self.audio_path_label.setMinimumWidth(400)  
         audio_layout.addWidget(self.audio_path_label)
         
         self.audio_message_input = QLineEdit()

@@ -2,12 +2,18 @@ from PyQt5.QtWidgets import QFileDialog, QComboBox, QWidget, QVBoxLayout, QGroup
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 import os
-import random
-from utils.steganography import hide_message, retrieve_message
-import utils.encryption as encryption
+from utils.steganography import (hide_message_lsb_from_steganography ,    retrieve_message_lsb_from_steganography,
+                                 hide_message_transform_domain_from_steganography ,      retrieve_message_transform_domain_from_steganography,
+                                 hide_message_masking_filtering_from_steganography ,    retrieve_message_masking_filtering_from_steganography,
+                                 hide_message_palette_based_from_steganography ,    retrieve_message_palette_based_from_steganography,
+                                 hide_message_spread_spectrum_from_steganography , retrieve_message_spread_spectrum_from_steganography
+                                 )
 import os
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
+import uuid
+from datetime import datetime
+
 
 class ImageTab(QWidget):
     def __init__(self):
@@ -30,13 +36,14 @@ class ImageTab(QWidget):
 
         self.number_selector = QComboBox()
         self.number_selector.addItems([str(i) for i in range(1, 11)])
+        self.number_selector.currentIndexChanged.connect(self.load_example_image)
 
-        self.load_example_button = QPushButton("โหลดภาพตัวอย่าง")
-        self.load_example_button.clicked.connect(self.load_example_image)
-        self.load_example_button.setStyleSheet("background-color: green; color: white;")
+        # self.load_example_button = QPushButton("โหลดภาพตัวอย่าง")
+        # self.load_example_button.clicked.connect(self.load_example_image)
+        # self.load_example_button.setStyleSheet("background-color: green; color: white;")
 
         button_layout.addWidget(self.number_selector)
-        button_layout.addWidget(self.load_example_button)
+        # button_layout.addWidget(self.load_example_button)
         button_layout.addWidget(self.select_image_button)
 
         # Image preview
@@ -54,6 +61,20 @@ class ImageTab(QWidget):
         # Message input
         self.message_input = QLineEdit()
         self.message_input.setPlaceholderText("ข้อความที่ต้องการซ่อน")
+        
+        # Dropdown for selecting hiding mode
+        self.mode_selector = QComboBox()
+        self.mode_selector.addItems([
+            "LSB", 
+            "Transform Domain Techniques", 
+            "Masking and Filtering", 
+            "Palette-based Techniques", 
+            "Spread Spectrum"
+        ])
+        
+
+
+
 
         # Hide/Extract buttons
         action_layout = QHBoxLayout()
@@ -64,9 +85,12 @@ class ImageTab(QWidget):
         self.extract_button = QPushButton("ถอดข้อความ")
         self.extract_button.clicked.connect(self.retrieve_message)
         self.extract_button.setStyleSheet("background-color: orange; color: white;")
+        
+        
 
         action_layout.addWidget(self.hide_button)
         action_layout.addWidget(self.extract_button)
+        
 
         # Output Folder button
         self.output_folder_button = QPushButton("เปิดโฟลเดอร์ Output")
@@ -75,8 +99,13 @@ class ImageTab(QWidget):
         action_layout.addWidget(self.output_folder_button)
 
         # Add components to layout
+        
         image_layout.addLayout(button_layout)
         image_layout.addWidget(self.image_label)
+        
+        
+        image_layout.addWidget(QLabel("เลือกโหมดการซ่อนข้อความ:"))
+        image_layout.addWidget(self.mode_selector)
         image_layout.addWidget(self.message_input)
         image_layout.addLayout(action_layout)
 
@@ -137,28 +166,85 @@ class ImageTab(QWidget):
         else:
             self.result_output.append("<font color='red'>ไม่พบไฟล์ภาพตัวอย่าง</font>")
 
+
+  
+    
     def hide_message(self):
-        message = self.message_input.text()
         if not hasattr(self, "selected_image"):
             self.result_output.append("<font color='red'>กรุณาเลือกไฟล์ภาพ</font>")
             return
-
-        output_folder = os.path.join(os.path.dirname(self.selected_image), 'output')
+        mode = self.mode_selector.currentText()
+        message = self.message_input.text()
+        image = self.selected_image
+        
+        current_directory = os.path.dirname(os.path.realpath(__file__))
+        parent_directory = os.path.dirname(current_directory)  
+        output_folder = os.path.join(parent_directory, "photoexample", "output")
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
+        
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        unique_id = uuid.uuid4().hex[:8]
+        output_filename = f"{timestamp}_{unique_id}.png"
+        output_path = os.path.join(output_folder, output_filename)
+        
+        try:
+            if mode == "LSB":
+                # self.hide_message_lsb()
+                hide_message_lsb_from_steganography(image, message, output_path)
+            elif mode == "Transform Domain Techniques":
+                hide_message_transform_domain_from_steganography(image, message, output_path)
+            elif mode == "Masking and Filtering":
+                hide_message_masking_filtering_from_steganography(image, message, output_path)
+            elif mode == "Palette-based Techniques":
+                hide_message_palette_based_from_steganography(image, message, output_path)
+            elif mode == "Spread Spectrum":
+                hide_message_spread_spectrum_from_steganography(image, message, output_path)
+            else:
+                self.result_output.append("<font color='red'>โหมดที่เลือกไม่รองรับ</font>")
+                return
+            self.result_output.append(f"ข้อความถูกซ่อนใน: {output_path}")
+        except Exception as e:
+            self.result_output.append(f"<font color='red'>เกิดข้อผิดพลาด: {str(e)}</font>")
 
-        random_number = random.randint(1, 1000000)
-        output_path = os.path.join(output_folder, f"{random_number}.png")
-        hide_message(self.selected_image, message, output_path)
-        self.result_output.append(f"ข้อความถูกซ่อนใน: {output_path}")
+
+
+
 
     def retrieve_message(self):
         if not hasattr(self, "selected_image"):
             self.result_output.append("<font color='red'>กรุณาเลือกไฟล์ภาพ</font>")
             return
 
-        retrieved_message = retrieve_message(self.selected_image)
-        if retrieved_message:
-            self.result_output.append(f"ข้อความที่ถูกถอดออกมา: {retrieved_message}")
-        else:
-            self.result_output.append("<font color='red'>ไม่พบข้อความที่ถูกซ่อนอยู่ในภาพนี้</font>")
+        mode = self.mode_selector.currentText()
+        image_path = self.selected_image
+        try:
+            if mode == "LSB":
+                # retrieved_message = retrieve_message_lsb(self.selected_image)
+                retrieved_message = retrieve_message_lsb_from_steganography(image_path)
+            elif mode == "Transform Domain Techniques":
+                # retrieved_message = retrieve_message_transform_domain(self.selected_image)
+                retrieved_message = retrieve_message_transform_domain_from_steganography(image_path)
+            elif mode == "Masking and Filtering":
+                retrieved_message = retrieve_message_masking_filtering_from_steganography(image_path)
+            elif mode == "Palette-based Techniques":
+                retrieved_message = retrieve_message_palette_based_from_steganography(image_path)
+            elif mode == "Spread Spectrum":
+                retrieved_message = retrieve_message_spread_spectrum_from_steganography(image_path)
+            else:
+                self.result_output.append("<font color='red'>โหมดที่เลือกไม่รองรับ</font>")
+                return
+
+            if retrieved_message:
+                self.result_output.append(f"ข้อความที่ถูกถอดออกมา: {retrieved_message}")
+            else:
+                self.result_output.append("<font color='red'>ไม่พบข้อความที่ถูกซ่อนอยู่ในภาพนี้</font>")
+        except Exception as e:
+            self.result_output.append(f"<font color='red'>เกิดข้อผิดพลาด: {str(e)}</font>")
+
+
+
+
+
+
+
