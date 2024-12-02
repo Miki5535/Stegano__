@@ -98,7 +98,6 @@ def hide_message_transform_domain_from_steganography(image_path, message, output
 
 
 
-
 def hide_message_masking_filtering_from_steganography(image_path, message, output_path):
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if img is None:
@@ -150,7 +149,6 @@ def hide_message_palette_based_from_steganography(image_path, message, output_pa
         if os.path.exists(temp_png_path):
             os.remove(temp_png_path)
             print(f"ลบไฟล์ชั่วคราว {temp_png_path} สำเร็จ")
-
 
 
 
@@ -305,3 +303,11 @@ def retrieve_message_spread_spectrum_from_steganography(image_path):
             return "ข้อความที่ซ่อนไว้ไม่ถูกต้อง"
     else:
         return "ไม่มีข้อความ หรือข้อความไม่ถูกต้อง"
+
+
+
+
+
+
+
+

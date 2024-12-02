@@ -8,6 +8,8 @@ import soundfile as sf
 import sounddevice as sd
 from pydub import AudioSegment
 import utils.steganography as steganography
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 
 
 class AudioTab(QWidget):
@@ -244,9 +246,7 @@ class AudioTab(QWidget):
             self.result_output.append(f"เกิดข้อผิดพลาดในการถอดข้อความ: {e}")
 
     def open_output_folder(self):
-        import os
-        from PyQt5.QtCore import QUrl
-        from PyQt5.QtGui import QDesktopServices
+
 
         current_directory = os.path.dirname(os.path.realpath(__file__))
         parent_directory = os.path.dirname(current_directory)

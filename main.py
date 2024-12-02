@@ -8,7 +8,7 @@ import tabs.audio_tab as audio_tab
 import tabs.file_info_tab as info_tab
 import tabs.encryption_tab as encryption_tab
 import tabs.file_and_FILE as file_and_FILE
-
+import tabs.video_tab as video_tab
 
 
 
@@ -108,6 +108,9 @@ class EnhancedSteganographyApp(QWidget):
         
         self.audio_tab = audio_tab.AudioTab()
         tabs.addTab(self.audio_tab, "การซ่อนข้อความในไฟล์เสียง")
+        
+        self.video_tab = video_tab.VideoTab()
+        tabs.addTab(self.video_tab, "การซ่อนข้อความในวีดีโอ")
         
         self.info_tab = info_tab.FileInfoTab()
         tabs.addTab(self.info_tab, "การซ่อนใน Meta Tag")

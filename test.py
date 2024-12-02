@@ -1,6 +1,84 @@
 import os
 import shutil
 import re
+import cv2
+import numpy as np
+
+
+def encode_message_in_video(input_video, output_video, message):
+    # แปลงข้อความเป็น binary
+    binary_message = ''.join(format(ord(c), '08b') for c in message)
+    binary_message += '1111111111111110'  # บิตสิ้นสุด
+
+    cap = cv2.VideoCapture(input_video)
+    if not cap.isOpened():
+        print("Failed to open input video file.")
+        return
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    fourcc = cv2.VideoWriter_fourcc(*'FFV1')
+
+    out = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
+
+    message_idx = 0
+    total_bits = len(binary_message)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if message_idx < total_bits:
+            for i in range(frame.shape[0]):
+                for j in range(frame.shape[1]):
+                    if message_idx < total_bits:
+                        frame[i, j, 0] = (frame[i, j, 0] & 0xFE) | int(binary_message[message_idx])
+                        message_idx += 1
+
+        out.write(frame)
+
+    cap.release()
+    out.release()
+
+    print(f"Message encoded successfully! Total bits encoded: {message_idx} out of {total_bits}.")
+    if message_idx < total_bits:
+        print("Warning: Not all message bits were encoded.")
+
+def decode_message_from_video(encoded_video):
+    cap = cv2.VideoCapture(encoded_video)
+    if not cap.isOpened():
+        print("Failed to open encoded video file.")
+        return ""
+
+    binary_message = ""
+    bit_count = 0
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        for i in range(frame.shape[0]):
+            for j in range(frame.shape[1]):
+                binary_message += str(frame[i, j, 0] & 1)
+                bit_count += 1
+
+                # ตรวจสอบบิตสิ้นสุด
+                if binary_message[-16:] == '1111111111111110':
+                    cap.release()
+                    print(f"Total bits read: {bit_count}")
+                    # ตัดบิตสิ้นสุดออก
+                    binary_message = binary_message[:-16]
+                    return ''.join(chr(int(binary_message[i:i+8], 2)) for i in range(0, len(binary_message), 8))
+
+    cap.release()
+    return "No hidden message found."
+
+
+
 
 def append_files_to_image(image_path, files_to_append):
     """
@@ -134,48 +212,77 @@ def extract_appended_files(image_path, output_folder):
 
 # ตัวอย่างการใช้งาน
 if __name__ == "__main__":
-    try:
-        # ต่อท้ายไฟล์ไปยังภาพ
-        image_path = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\sfs.png'
-        files_to_append = [
-            r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161719_5dc8e875.png', 
-            r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161751_8e6256d5.png', 
-            r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161900_2c09759e.png', 
-        ]
-        
-        modified_image = append_files_to_image(image_path, files_to_append)
-        print(f"ภาพที่แก้ไขถูกบันทึกที่: {modified_image}")
-        
-        # ตรวจสอบไฟล์ที่ต่อท้าย
-        appended_files = verify_appended_files(modified_image)
-        
-        # พิมพ์รายละเอียดไฟล์ที่ถูกต่อท้าย
-        if appended_files:
-            print("ไฟล์ที่ถูกต่อท้าย:")
-            for file_info in appended_files:
-                print(f"- ประเภท: {file_info['type']}")
-                print(f"  ตำแหน่ง: {file_info['positions']}")
-        else:
-            print("ไม่พบไฟล์ที่ต่อท้าย")
     
+    
+    # try:
+    #     # ต่อท้ายไฟล์ไปยังภาพ
+    #     image_path = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\sfs.png'
+    #     files_to_append = [
+    #         r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161719_5dc8e875.png', 
+    #         r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161751_8e6256d5.png', 
+    #         r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\20241201161900_2c09759e.png', 
+    #     ]
+        
+    #     modified_image = append_files_to_image(image_path, files_to_append)
+    #     print(f"ภาพที่แก้ไขถูกบันทึกที่: {modified_image}")
+        
+    #     # ตรวจสอบไฟล์ที่ต่อท้าย
+    #     appended_files = verify_appended_files(modified_image)
+        
+    #     # พิมพ์รายละเอียดไฟล์ที่ถูกต่อท้าย
+    #     if appended_files:
+    #         print("ไฟล์ที่ถูกต่อท้าย:")
+    #         for file_info in appended_files:
+    #             print(f"- ประเภท: {file_info['type']}")
+    #             print(f"  ตำแหน่ง: {file_info['positions']}")
+    #     else:
+    #         print("ไม่พบไฟล์ที่ต่อท้าย")
+    
+    # except Exception as e:
+    #     print(f"เกิดข้อผิดพลาด: {e}")
+        
+    # try:
+    #     # ถอดไฟล์ที่ถูกต่อท้ายจากภาพ
+    #     image_path = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\sfs_modified.png'
+    #     output_folder = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\extracted_files'
+    #     os.makedirs(output_folder, exist_ok=True)
+        
+    #     extracted_files = extract_appended_files(image_path, output_folder)
+        
+    #     # พิมพ์รายการไฟล์ที่ถูกถอด
+    #     if extracted_files:
+    #         print("ไฟล์ที่ถูกถอด:")
+    #         for extracted_file in extracted_files:
+    #             print(f"- {extracted_file}")
+    #     else:
+    #         print("ไม่พบไฟล์ที่ถูกถอด")
+    
+    # except Exception as e:
+    #     print(f"เกิดข้อผิดพลาด: {e}")
+        
+        
+        
+    try:
+        # input_video =  r'C:\Users\65011\Desktop\Segano\work00002\vdio\avi.avi'   
+        # input_video =  r'C:\Users\65011\Desktop\Segano\work00002\vdio\mikkee.mp4'   
+        input_video =  r'C:\Users\65011\Desktop\Segano\work00002\vdio\mkv.mkv'   
+        output_video = r'C:\Users\65011\Desktop\Segano\work00002\vdio\output.avi'  
+        message = "Hello, this is a hidden message!"
+        
+        if not os.path.exists(input_video):
+            print("Input video file does not exist!")   
+
+        encode_message_in_video(input_video, output_video, message)
+
+        hidden_message = decode_message_from_video(output_video)
+        print("Hidden message:", hidden_message)
+        
+
+
+
+
+        
     except Exception as e:
         print(f"เกิดข้อผิดพลาด: {e}")
-        
-    try:
-        # ถอดไฟล์ที่ถูกต่อท้ายจากภาพ
-        image_path = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\output\sfs_modified.png'
-        output_folder = r'C:\Users\65011\Desktop\Segano\work00002\photoexample\extracted_files'
-        os.makedirs(output_folder, exist_ok=True)
-        
-        extracted_files = extract_appended_files(image_path, output_folder)
-        
-        # พิมพ์รายการไฟล์ที่ถูกถอด
-        if extracted_files:
-            print("ไฟล์ที่ถูกถอด:")
-            for extracted_file in extracted_files:
-                print(f"- {extracted_file}")
-        else:
-            print("ไม่พบไฟล์ที่ถูกถอด")
-    
-    except Exception as e:
-        print(f"เกิดข้อผิดพลาด: {e}")
+
+
