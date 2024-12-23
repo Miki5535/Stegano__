@@ -20,6 +20,7 @@ class ImageTab(QWidget):
         super().__init__()
         self.initUI()
         self.load_example_image()
+        self.setAcceptDrops(True) 
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -242,6 +243,25 @@ class ImageTab(QWidget):
         except Exception as e:
             self.result_output.append(f"<font color='red'>เกิดข้อผิดพลาด: {str(e)}</font>")
 
+    def dragEnterEvent(self, event):
+            """ตรวจสอบว่าไฟล์ที่ลากเข้ามาถูกต้องหรือไม่"""
+            if event.mimeData().hasUrls():  # ตรวจสอบว่ามี URL หรือไฟล์ที่ลากเข้ามาหรือไม่
+                event.accept()
+            else:
+                event.ignore()
+
+    def dropEvent(self, event):
+        """จัดการไฟล์เมื่อปล่อยลงบน QLabel"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            file_path = urls[0].toLocalFile()  # ใช้เฉพาะไฟล์แรก
+            if file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
+                self.selected_image = file_path
+                pixmap = QPixmap(file_path)
+                self.image_label.setPixmap(pixmap.scaled(400, 200, Qt.KeepAspectRatio))
+                self.result_output.append(f"เลือกไฟล์ผ่านการลากและวาง: {file_path}")
+            else:
+                self.result_output.append("<font color='red'>ไฟล์ที่ลากมาไม่ใช่รูปภาพ</font>")
 
 
 
