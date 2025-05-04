@@ -4,10 +4,6 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout,
                           
                             QTabWidget)
 from PyQt5.QtGui import  QIcon
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-# utils_dir = os.path.join(current_dir, 'tabs')
-# sys.path.append(utils_dir)
-
 import tabs.image_tab as image_tab
 import tabs.audio_tab as audio_tab
 import tabs.file_info_tab as info_tab
@@ -15,6 +11,8 @@ import tabs.encryption_tab as encryption_tab
 import tabs.file_and_FILE as file_and_FILE
 import tabs.video_tab as video_tab
 import tabs.integrated_mode_tab as integrated_mode_tab
+import tabs.pgp_tab as pgp_tab
+
 
 
 
@@ -23,7 +21,7 @@ class EnhancedSteganographyApp(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Enhanced Steganography and Encryption App")
+        self.setWindowTitle("SIENG : Secure Incognito ENcryption Guard")
         self.setGeometry(100, 100, 1000, 800)
         self.setWindowIcon(QIcon("myicon.ico"))
         self.setFixedSize(1000, 800) 
@@ -127,6 +125,9 @@ class EnhancedSteganographyApp(QWidget):
         self.encryption_tab = encryption_tab.EncryptionTab()
         tabs.addTab(self.encryption_tab, "การเข้ารหัส")
         
+        self.pgp_tab = pgp_tab.PGPTab()
+        tabs.addTab(self.pgp_tab, "PGP")
+        
         self.integrated_mode_tab = integrated_mode_tab.IntegrationTab()
         tabs.addTab(self.integrated_mode_tab, "โหมดบูรณาการ")
         
@@ -135,6 +136,7 @@ class EnhancedSteganographyApp(QWidget):
         main_layout.addWidget(tabs)
         self.setLayout(main_layout)
 
+        
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = EnhancedSteganographyApp()
