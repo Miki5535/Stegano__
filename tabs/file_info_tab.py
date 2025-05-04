@@ -15,6 +15,7 @@ class FileInfoTab(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.setAcceptDrops(True)
 
 
     def initUI(self):
@@ -297,6 +298,25 @@ class FileInfoTab(QWidget):
         except Exception as e:
             return f"ไม่สามารถดึงข้อมูลมัลติมีเดียได้: {str(e)}"
 
+    def dragEnterEvent(self, event):
+            """ตรวจสอบว่าไฟล์ที่ลากเข้ามาเป็นประเภทที่รองรับ"""
+            if event.mimeData().hasUrls():
+                event.accept()
+            else:
+                event.ignore()
 
+    def dropEvent(self, event):
+        """จัดการเหตุการณ์วางไฟล์"""
+        urls = event.mimeData().urls()
+        if urls:
+            file_path = urls[0].toLocalFile()
+            if os.path.isfile(file_path) and file_path.lower().endswith((
+                '.mp3', '.mp4', '.m4a', '.wav', '.avi', '.mkv', 
+                '.flv', '.mov', '.ogg', '.wma', '.aac')):
+                self.selected_file = file_path
+                self.show_file_details(file_path)
+                QMessageBox.information(self, "ไฟล์ที่เลือก", f"เลือกไฟล์ผ่านการลากและวาง: {file_path}")
+            else:
+                QMessageBox.warning(self, "ข้อผิดพลาด", "ไฟล์ที่ลากเข้ามาไม่ใช่ประเภทที่รองรับ")
 
 

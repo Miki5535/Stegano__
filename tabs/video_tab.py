@@ -18,6 +18,7 @@ class VideoTab(QWidget):
         self.video_path = None
         self.initUI()
         self.load_example_video()
+        self.setAcceptDrops(True)
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -167,6 +168,35 @@ class VideoTab(QWidget):
 
         # เปิดโฟลเดอร์
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_path))
+
+    def dragEnterEvent(self, event):
+        # ตรวจสอบว่าไฟล์ที่ลากเข้ามาเป็นประเภทไฟล์ที่รองรับ
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if urls:
+            file_path = urls[0].toLocalFile()
+            if os.path.isfile(file_path) and file_path.lower().endswith(('.mp4', '.avi', '.mkv', '.mov')):
+                self.video_path = file_path
+                self.video_path_label.setText(file_path)
+                self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(file_path)))
+                self.media_player.play()
+                self.result_output.append(f"<font color='blue'>เลือกไฟล์วิดีโอผ่านการลากและวาง: {file_path}</font>")
+            else:
+                self.result_output.append("<font color='red'>ไฟล์ที่ลากเข้ามาไม่ใช่วิดีโอที่รองรับ!</font>")
+
+
+
+
+
+
+
+
+
 
 
 

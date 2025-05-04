@@ -17,6 +17,7 @@ class AudioTab(QWidget):
         super().__init__()
         self.initUI()
         self.load_example_audio()
+        self.setAcceptDrops(True)
 
 
 
@@ -63,8 +64,13 @@ class AudioTab(QWidget):
         self.audio_path_label.setMinimumWidth(400)  
         audio_layout.addWidget(self.audio_path_label)
         
-        self.audio_message_input = QLineEdit()
+        self.audio_message_input = QTextEdit()  # ใช้ QTextEdit แทน QLineEdit
         self.audio_message_input.setPlaceholderText("ข้อความที่ต้องการซ่อนในไฟล์เสียง")
+        self.audio_message_input.setMinimumHeight(100)  # กำหนดความสูงเพิ่มขึ้น
+        self.audio_message_input.setMinimumWidth(400)  # กำหนดความกว้าง
+        self.audio_message_input.setStyleSheet("font-size: 14px; padding: 5px;")  # ปรับขนาดตัวอักษรและเพิ่ม padding
+
+
         
         audio_layout.addWidget(self.audio_message_input)
 
@@ -134,7 +140,6 @@ class AudioTab(QWidget):
             self.audio_path_label.setText(selected_audio_path)
             self.result_output.append(f"เลือกเสียงตัวอย่าง: <font color='blue'>{selected_audio_path}</font>")
 
-
     def stop_audio(self):
         try:
             sd.stop()
@@ -165,7 +170,7 @@ class AudioTab(QWidget):
             self.audio_path_label.setText("ไม่ได้เลือกไฟล์")
 
     def hide_message_in_audio(self):
-        message = self.audio_message_input.text()
+        message = self.audio_message_input.toPlainText()
         audio_path = self.audio_path_label.text()
         if audio_path == "ไม่ได้เลือกไฟล์":
             self.result_output.append("กรุณาเลือกไฟล์เสียงก่อน!")
@@ -187,34 +192,41 @@ class AudioTab(QWidget):
                 frames = audio_file.readframes(n_frames)
                 audio_data = np.frombuffer(frames, dtype=np.uint8)
 
+            # แปลงข้อความเป็นไบนารีและเพิ่มตัวจบข้อความ
             binary_message = steganography.string_to_binary(message) + '00000000'
-            if len(binary_message) > len(audio_data):
-                raise ValueError("ข้อความยาวเกินไป ไม่สามารถซ่อนในไฟล์เสียงนี้ได้")
 
+            # คำนวณขนาดข้อความสูงสุดที่สามารถซ่อนในไฟล์เสียง
+            max_message_length = len(audio_data) // 8  # 1 ตัวอักษรใช้ 8 บิต
+            self.result_output.append(f"ขนาดข้อความสูงสุดที่สามารถใส่ได้: {max_message_length} ตัวอักษร")
+
+            # ตรวจสอบว่าข้อความยาวเกินไปหรือไม่
+            if len(binary_message) > len(audio_data):
+                raise ValueError(f"ข้อความยาวเกินไป! (สูงสุด: {max_message_length} ตัวอักษร)")
+
+            # ฝังข้อมูลลงในไฟล์เสียง
             modified_data = audio_data.copy()
             for i in range(len(binary_message)):
                 modified_data[i] = (modified_data[i] & 254) | int(binary_message[i])
 
-            # directory = os.path.dirname(audio_path)
-            
+            # สร้างโฟลเดอร์ output ถ้ายังไม่มี
             current_directory = os.path.dirname(os.path.realpath(__file__))
             parent_directory = os.path.dirname(current_directory)  
             directory = os.path.join(parent_directory, "audioexample", "output")
-            
             if not os.path.exists(directory):
                 os.makedirs(directory)
-        
+
+            # ตั้งชื่อไฟล์เอาต์พุต
             filename = os.path.splitext(os.path.basename(audio_path))[0]
             output_path = os.path.join(directory, f"{filename}_hidden.wav")
-            
 
-            
+            # บันทึกไฟล์เสียงที่ถูกแก้ไข
             with wave.open(output_path, 'wb') as output_file:
                 output_file.setnchannels(n_channels)
                 output_file.setsampwidth(sampwidth)
                 output_file.setframerate(framerate)
                 output_file.writeframes(modified_data.tobytes())
 
+            # ลบไฟล์ชั่วคราวถ้ามี
             if temp_wav_path:
                 os.remove(temp_wav_path)
 
@@ -259,7 +271,22 @@ class AudioTab(QWidget):
         # เปิดโฟลเดอร์
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_path))
 
+    def dragEnterEvent(self, event):
+            # ตรวจสอบว่าไฟล์ที่ลากเข้ามาเป็นประเภทที่รองรับ
+            if event.mimeData().hasUrls():
+                event.accept()
+            else:
+                event.ignore()
 
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if urls:
+            file_path = urls[0].toLocalFile()
+            if os.path.isfile(file_path) and file_path.lower().endswith(('.wav', '.mp3', '.flac')):
+                self.audio_path_label.setText(file_path)
+                self.result_output.append(f"<font color='blue'>เลือกไฟล์เสียงผ่านการลากและวาง: {file_path}</font>")
+            else:
+                self.result_output.append("<font color='red'>ไฟล์ที่ลากเข้ามาไม่ใช่ไฟล์เสียงที่รองรับ!</font>")
 
 
 
