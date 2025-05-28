@@ -23,96 +23,110 @@ class AudioTab(QWidget):
 
     def initUI(self):
         layout = QVBoxLayout()
-
         # Audio file selection group
         audio_group = QGroupBox("จัดการไฟล์เสียง")
         audio_layout = QVBoxLayout()
-
         # Row layout for file selection and folder opening
         audio_row_layout = QHBoxLayout()
-
         self.select_audio_button = QPushButton("เลือกไฟล์เสียง")
         self.select_audio_button.clicked.connect(self.select_audio)
-
         self.load_example_button = QPushButton("โหลดเสียงตัวอย่าง")
         self.load_example_button.clicked.connect(self.load_example_audio)
         self.load_example_button.setStyleSheet("background-color: blue; color: white;")
-
         self.example_audio_dropdown = QComboBox()
         self.example_audio_dropdown.setPlaceholderText("เลือกไฟล์เสียงตัวอย่าง")
         self.example_audio_dropdown.currentIndexChanged.connect(self.select_example_audio)
-
         self.open_output_folder_button = QPushButton("เปิดโฟลเดอร์ Output")
         self.open_output_folder_button.clicked.connect(self.open_output_folder)
-        self.open_output_folder_button.setStyleSheet("background-color: back; color: white;")
-
+        self.open_output_folder_button.setStyleSheet("background-color: black; color: white;")
         # Add buttons and dropdown to the row layout
         audio_row_layout.addWidget(self.example_audio_dropdown)
         audio_row_layout.addWidget(self.select_audio_button)
         audio_row_layout.addWidget(self.load_example_button)
         audio_row_layout.addWidget(self.open_output_folder_button)
-
         # Add row layout to the audio layout
         audio_layout.addLayout(audio_row_layout)
-        
-        
-
         # Preview selected file with increased width
         self.audio_path_label = QLabel("ไม่ได้เลือกไฟล์")
         self.audio_path_label.setStyleSheet("padding: 5px; border: 1px solid #ccc;")
         self.audio_path_label.setMinimumHeight(30)
         self.audio_path_label.setMinimumWidth(400)  
         audio_layout.addWidget(self.audio_path_label)
-        
+
+        # Text input for message
         self.audio_message_input = QTextEdit()  # ใช้ QTextEdit แทน QLineEdit
         self.audio_message_input.setPlaceholderText("ข้อความที่ต้องการซ่อนในไฟล์เสียง")
         self.audio_message_input.setMinimumHeight(100)  # กำหนดความสูงเพิ่มขึ้น
         self.audio_message_input.setMinimumWidth(400)  # กำหนดความกว้าง
         self.audio_message_input.setStyleSheet("font-size: 14px; padding: 5px;")  # ปรับขนาดตัวอักษรและเพิ่ม padding
-
-
-        
+        self.audio_message_input.textChanged.connect(self.update_remaining_bits)  # เพิ่ม event
         audio_layout.addWidget(self.audio_message_input)
+
+        # Label แสดงจำนวน bit ที่สามารถใช้ได้
+        self.remaining_bits_label = QLabel("จำนวน bit ที่สามารถใช้ได้: ไม่ทราบ")
+        self.remaining_bits_label.setStyleSheet("color: green; font-weight: bold;")
+        audio_layout.addWidget(self.remaining_bits_label)
 
         # Add buttons for hiding, extracting, playing, and stopping audio
         audio_buttons_layout = QHBoxLayout()
-
         self.hide_audio_button = QPushButton("ซ่อนข้อความในไฟล์เสียง")
         self.hide_audio_button.clicked.connect(self.hide_message_in_audio)
         self.hide_audio_button.setStyleSheet("background-color: purple; color: white;")
-
         self.extract_audio_button = QPushButton("ถอดข้อความจากไฟล์เสียง")
         self.extract_audio_button.clicked.connect(self.extract_message_from_audio)
         self.extract_audio_button.setStyleSheet("background-color: orange; color: white;")
-
         self.play_audio_button = QPushButton("เล่น")
         self.play_audio_button.clicked.connect(self.reset_audio)
         self.play_audio_button.setStyleSheet("background-color: green; color: white;")
-
         self.stop_audio_button = QPushButton("หยุด")
         self.stop_audio_button.clicked.connect(self.stop_audio)
         self.stop_audio_button.setStyleSheet("background-color: red; color: white;")
-
         # Add buttons to the layout
         audio_buttons_layout.addWidget(self.hide_audio_button)
         audio_buttons_layout.addWidget(self.extract_audio_button)
         audio_buttons_layout.addWidget(self.play_audio_button)
         audio_buttons_layout.addWidget(self.stop_audio_button)
-
         # Add button layout to the audio layout
         audio_layout.addLayout(audio_buttons_layout)
-
         audio_group.setLayout(audio_layout)
         layout.addWidget(audio_group)
-        
-
-
         # Result output area
         self.result_output = QTextEdit()
         self.result_output.setReadOnly(True)
         layout.addWidget(self.result_output)
-
         self.setLayout(layout)
+
+    def update_remaining_bits(self):
+        """อัปเดตจำนวน bit ที่เหลือใช้งานขณะพิมพ์ข้อความ"""
+        try:
+            audio_path = self.audio_path_label.text()
+            if audio_path == "ไม่ได้เลือกไฟล์":
+                self.remaining_bits_label.setText("กรุณาเลือกไฟล์เสียงก่อน!")
+                return
+
+            # อ่านไฟล์เสียงเพื่อหาจำนวน byte ทั้งหมด
+            with wave.open(audio_path, 'rb') as audio_file:
+                n_frames = audio_file.getnframes()
+                frames = audio_file.readframes(n_frames)
+                total_bytes = len(frames)
+
+            # คำนวณ bit ทั้งหมดที่สามารถใช้ได้
+            total_bits = total_bytes * 1  # 1 bit ต่อ byte
+            message = self.audio_message_input.toPlainText()
+            binary_message = steganography.string_to_binary(message) + '00000000'
+            used_bits = len(binary_message)
+
+            remaining_bits = max(total_bits - used_bits, 0)
+
+            self.remaining_bits_label.setText(
+                f"จำนวน bit ที่เหลือ: {remaining_bits} bit | ใช้ไปแล้ว: {used_bits} bit"
+            )
+            if remaining_bits < 0:
+                self.remaining_bits_label.setStyleSheet("color: red; font-weight: bold;")
+            else:
+                self.remaining_bits_label.setStyleSheet("color: green; font-weight: bold;")
+        except Exception as e:
+            self.remaining_bits_label.setText("เกิดข้อผิดพลาดในการคำนวณ bit")
 
 
     def load_example_audio(self):
@@ -287,6 +301,5 @@ class AudioTab(QWidget):
                 self.result_output.append(f"<font color='blue'>เลือกไฟล์เสียงผ่านการลากและวาง: {file_path}</font>")
             else:
                 self.result_output.append("<font color='red'>ไฟล์ที่ลากเข้ามาไม่ใช่ไฟล์เสียงที่รองรับ!</font>")
-
 
 
